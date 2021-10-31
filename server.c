@@ -11,9 +11,9 @@ void red()
 {
     printf("\033[1;31m");
 }
-void yellow()
+void green()
 {
-    printf("\033[0;33m");
+    printf("\033[0;32m");
 }
 int main(int argc, char const *argv[])
 {
@@ -58,43 +58,44 @@ sizeof(address)) < 0)
         exit(EXIT_FAILURE);
     }
     // privilege separation starts here
-    printf("Forking ........");
+    green();
+    printf("Forking ........\n");
     pid_t childProcess = fork();
 
 
     if(childProcess < 0){
-        perror("Error in forking");
+        perror("Error in forking\n");
         return -1;
     }
     else if (childProcess == 0){
-        printf("Parent process forked");
+        printf("Parent process forked\n");
         struct passwd *pw = getpwnam(currentUser);
         if(pw == NULL){
             red();
-            printf("Can't find UID for currentUser");
+            printf("Can't find UID for currentUser\n");
             return -1;
         }
         if (setuid(pw->pw_uid ) < 0){
             red();
-            perror("Error in dropping privileges");
+            perror("Error in dropping privileges\n");
             return -1;
         }
-        yellow();
+        green();
         printf("Privileges dropped\n" );
         valread = read( new_socket , buffer, 1024);
-        yellow();
+        green();
         printf("MESSAGE RECEIVED: %s\n",buffer );
         send(new_socket , hello , strlen(hello) , 0 );
-        yellow();
+        green();
         printf("Hello message sent\n");
         return 0;
 
     }
     else{
-        yellow();
-        printf("Waiting for child process to get completed");
+      wait(NULL);
+      green();
+      printf("Child process finished.\nParent Terminating\n" );
     }
-
 
     return 0;
 }
