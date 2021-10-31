@@ -1,16 +1,17 @@
 // Server side C/C++ program to demonstrate Socket programming
-#include <unistd.h>
-#include <stdio.h>
-#include <sys/socket.h>
-#include <stdlib.h>
-#include <netinet/in.h>
-#include <string.h>
+#include <unistd.h> 
+#include <stdio.h> 
+#include <sys/socket.h> 
+#include <stdlib.h> 
+#include <netinet/in.h> 
+#include <string.h> 
+#include <pwd.h>
 #define PORT 8080
 void red()
 {
     printf("\033[1;31m");
 }
-void green()
+void yellow()
 {
     printf("\033[0;33m");
 }
@@ -22,14 +23,16 @@ int main(int argc, char const *argv[])
     int addrlen = sizeof(address);
     char buffer[1024] = {0};
     char *hello = "Hello from server";
+    char *currentUser = "nobody";
+    struct passwd* pwd;
     // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
-&opt, sizeof(opt)))
+// Forcefully attaching socket to the port 8080 
+if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR , &opt, sizeof(opt)))
     {
         perror("setsockopt");
         exit(EXIT_FAILURE);
@@ -54,9 +57,44 @@ sizeof(address)) < 0)
         perror("accept");
         exit(EXIT_FAILURE);
     }
-    valread = read(new_socket, buffer, 1024);
-    printf("Read %d bytes: %s\n", valread, buffer);
-    send(new_socket, hello, strlen(hello), 0);
-    printf("Hello message sent\n");
+    // privilege separation starts here
+    printf("Forking ........");
+    pid_t childProcess = fork();
+
+
+    if(childProcess < 0){
+        perror("Error in forking");
+        return -1;
+    }
+    else if (childProcess == 0){
+        printf("Parent process forked");
+        struct passwd *pw = getpwnam(currentUser);
+        if(pw == NULL){
+            red();
+            printf("Can't find UID for currentUser");
+            return -1;
+        }
+        if (setuid(pw->pw_uid ) < 0){
+            red();
+            perror("Error in dropping privileges");
+            return -1;
+        }
+        yellow();
+        printf("Privileges dropped\n" );
+        valread = read( new_socket , buffer, 1024);
+        yellow();
+        printf("MESSAGE RECEIVED: %s\n",buffer );
+        send(new_socket , hello , strlen(hello) , 0 );
+        yellow();
+        printf("Hello message sent\n");
+        return 0;
+
+    }
+    else{
+        yellow();
+        printf("Waiting for child process to get completed");
+    }
+
+
     return 0;
 }
