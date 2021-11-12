@@ -1,4 +1,4 @@
-# cmpe279_assignment-1
+# cmpe279_assignment-1 ( Done individually, no teams)
 ## To learn how to do privilege seperation using fork() & privilege dropping using setuid() 
 
 # Steps involved :- 
