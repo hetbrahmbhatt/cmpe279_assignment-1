@@ -25,14 +25,15 @@ int main(int argc, char const *argv[])
     char *hello = "Hello from server";
     char *currentUser = "nobody";
     struct passwd* pwd;
+    printf("execve=0x%p\n", execve);
     // Creating socket file descriptor
     // get the arguments set in line 96
-    if (strcmp(argv[0], "inheritedProcess") == 0)
+    if (strcmp(argv[0], "receivedProcess") == 0)
     {
         int duplicateSocket = atoi(argv[1]);// get the duplicate socket using argv 1 
         valread = read(duplicateSocket, buffer, 1024);// read the value
         send(duplicateSocket, hello, strlen(hello), 0);// send the message to the client 
-        printf("Hello message sent\n");// print the message
+        printf("Hello message sent to the client\n");// print the message
         exit(0);
     }
     else{
@@ -70,31 +71,29 @@ int main(int argc, char const *argv[])
         green();
         printf("Forking ........\n");
         pid_t childProcess = fork();
-        printf("execve=0x%p\n", execve);
-
+        
+        // If there is error in forking
         if(childProcess < 0){
             perror("Error in forking\n");
             return -1;
         }
+
+        // Parent process forked properly
         else if (childProcess == 0){
-            printf("Parent process forked\n");
-            int copiedParentSocket = dup(new_socket);
-            if(copiedParentSocket == -1)perror("Duplication of new socket did not work");
+            printf("Parent process forked\n"); // successfull forking of parent process
+            int parentSocketCopied = dup(new_socket); 
+            if(parentSocketCopied == -1)perror("Duplication did not work"); // If the duplication was not possible
             struct passwd *pw = getpwnam(currentUser);
             if(pw == NULL){
                 red();
                 printf("Can't find UID for currentUser\n");
                 return -1;
             }
-            if (setuid(pw->pw_uid ) < 0){
-                red();
-                perror("Error in dropping privileges\n");
-                return -1;
-            }   
-            char temp[10];
-            sprintf(temp,"%d",copiedParentSocket); // copy to temp variable 
-            char *args[] = {"inheritedProcess",temp,NULL}; // store the values in the args array
-            execvp(argv[0],args); // calling execvp function again 
+            setuid(pw->pw_uid ); // set nobody user
+            char temp[10]; // initialise a temporary array
+            sprintf(temp,"%d",parentSocketCopied); // copy to temp array 
+            char *args[] = {"receivedProcess",temp,NULL}; // store the values in the args array
+            execvp(argv[0],args); // calling execvp function again
             /* If execvp returns, it must have failed. */
             printf("Unknown command\n");
             return 0;
